@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Big Time — MIDI Editor</title>
+<meta name="description" content="A web-based MIDI editor for the Chase Bliss Big Time delay. Control every parameter, manage presets, and sync over Web MIDI in Chrome or Edge.">
+<meta property="og:title" content="Big Time — MIDI Editor">
+<meta property="og:description" content="Web-based MIDI editor for the Chase Bliss Big Time delay.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#18191c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2318191c'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%233dd6c8' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%23f06090'/%3E%3C/svg%3E">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
 
@@ -383,6 +389,33 @@ hr.sep { border: none; border-top: 1px solid rgba(0,0,0,0.4); border-bottom: 1px
   background: rgba(0,0,0,0.4); color: var(--text-dim); border: 1px solid rgba(0,0,0,0.6);
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
 }
+
+/* ── ACCESSIBILITY: keyboard focus ring (reuses brand cyan) ── */
+.fader-track:focus-visible,
+.seg-btn:focus-visible,
+.toggle:focus-visible,
+.subdiv-btn:focus-visible,
+.loop-btn:focus-visible,
+.exp-toggle:focus-visible,
+.tab:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* ── RESPONSIVE: stack on narrow screens; desktop layout unchanged ── */
+@media (max-width: 880px) {
+  body { padding: 12px; align-items: flex-start; }
+  .pedal-wrapper { padding: 0 8px; max-height: none; }
+  .pedal-chassis { width: 96vw; }
+  #body { flex-direction: column; overflow: visible; }
+  #main { overflow: visible; }
+  #sidebar { width: 100%; border-left: none; border-top: 1px solid rgba(0,0,0,0.3); }
+  #tabs { flex-wrap: wrap; }
+  .tab-cols { flex-direction: column; gap: 16px !important; }
+  .tab-cols > div { border-right: none !important; padding-right: 0 !important; }
+  .faders-row { gap: 6px; }
+  #header { gap: 8px; }
+}
 </style>
 </head>
 <body>
@@ -425,7 +458,7 @@ hr.sep { border: none; border-top: 1px solid rgba(0,0,0,0.4); border-bottom: 1px
 
   <!-- ── TAB: CONTROLS ── -->
   <div class="panel active" id="tab-controls">
-    <div style="display: flex; gap: 32px;">
+    <div class="tab-cols" style="display: flex; gap: 32px;">
       
       <div style="flex: 1; padding-right: 32px; border-right: 1px solid rgba(255,255,255,0.05);">
         <div class="card">
@@ -454,7 +487,7 @@ hr.sep { border: none; border-top: 1px solid rgba(0,0,0,0.4); border-bottom: 1px
 
     <!-- ── TAB: SYSTEM & MIDI ── -->
   <div class="panel" id="tab-options">
-    <div style="display: flex; gap: 32px;">
+    <div class="tab-cols" style="display: flex; gap: 32px;">
       <div style="flex: 1; padding-right: 32px; border-right: 1px solid rgba(255,255,255,0.05);">
         <div class="card">
           <div class="card-title">Options Menu</div>
@@ -497,7 +530,7 @@ hr.sep { border: none; border-top: 1px solid rgba(0,0,0,0.4); border-bottom: 1px
 
   <!-- ── TAB: PERFORMANCE ── -->
   <div class="panel" id="tab-loop">
-    <div style="display: flex; gap: 32px;">
+    <div class="tab-cols" style="display: flex; gap: 32px;">
       
       <div style="flex: 1; padding-right: 32px; border-right: 1px solid rgba(255,255,255,0.05);">
         <div class="card">
@@ -529,7 +562,7 @@ hr.sep { border: none; border-top: 1px solid rgba(0,0,0,0.4); border-bottom: 1px
       <div class="card-title">Expression / CV Assignment</div>
       <div class="info-box" style="margin-bottom:10px;">
         <b>How it works on the pedal:</b> Hold SHIFT, then move any fader to max to assign Exp/CV to it. Right footswitch = set "toe" (max) position. Left footswitch = set "heel" (min) position.<br><br>
-        <b>This editor</b> lets you define the toe/heel range and toggle assignment for each fader, then sends the appropriate CC values to configure it. CV range: 0–5V. Higher voltage may damage the pedal.
+        <b>Reference / planning only:</b> Big Time's Exp/CV assignment and heel–toe range are set on the hardware using the steps above — there is no MIDI command to configure them remotely. Use this tab to plan and note your assignments; the values are saved with your local presets. For real-time expression <i>over MIDI</i>, use <b>EOM</b> (CC 100) on the System &amp; MIDI tab. CV range: 0–5V — higher voltage may damage the pedal.
       </div>
       <div id="expAssign"></div>
     </div>
@@ -564,7 +597,11 @@ hr.sep { border: none; border-top: 1px solid rgba(0,0,0,0.4); border-bottom: 1px
       <button class="btn" onclick="recallPreset()">Recall</button>
       <button class="btn primary" onclick="saveToSlot()">Save to Slot</button>
     </div>
-    
+
+    <div class="row" style="margin-bottom:8px;">
+      <button class="btn" onclick="saveToCurrent()" title="CC 28 — overwrite the preset currently loaded on the pedal">Save to Current Slot</button>
+    </div>
+
     <div class="row" style="margin-bottom:12px;">
       <button class="btn primary" onclick="saveAppPreset()">+ Save Local State</button>
     </div>
@@ -703,7 +740,11 @@ OPTIONS_TOGGLES.forEach(o => S.options[o.cc] = 0);
   S.exp[f.cc] = { on: false, heel: 0, toe: 127 };
 });
 
-let appPresets = JSON.parse(localStorage.getItem('bt2_presets') || '[]');
+let appPresets = [];
+try {
+  appPresets = JSON.parse(localStorage.getItem('bt2_presets') || '[]');
+  if (!Array.isArray(appPresets)) appPresets = [];
+} catch (e) { appPresets = []; }
 
 // ═══════════════════════════════════════════════════════════════
 // MIDI
@@ -750,14 +791,25 @@ document.getElementById('selOut').addEventListener('change', updateOut);
 
 function ch() { return parseInt(document.getElementById('selCh').value) - 1; }
 
+let _noOutWarnT = 0;
+function warnNoOutput() {
+  const now = Date.now();
+  if (now - _noOutWarnT > 2500) {   // throttle so dragging a fader doesn't spam
+    _noOutWarnT = now;
+    toast('Select a MIDI output first', true);
+  }
+}
+
 function sendCC(cc, val) {
   val = Math.max(0, Math.min(127, Math.round(val)));
   if (midiOut) { midiOut.send([0xB0 | ch(), cc, val]); flash(); }
+  else warnNoOutput();
 }
 
 function sendPC(prog) {
   prog = Math.max(0, Math.min(126, Math.round(prog)));
   if (midiOut) { midiOut.send([0xC0 | ch(), prog]); flash(); }
+  else warnNoOutput();
 }
 
 function flash() {
@@ -843,6 +895,7 @@ function setFader(cc, val, send) {
     thumb.style.bottom = (pct * 100) + '%';
     thumb.style.transform = 'translate(-50%, 50%)';
     thumb.style.setProperty('--fader-opacity', 0.1 + 0.9 * pct);
+    track.setAttribute('aria-valuenow', val);
   }
   const valEl = document.getElementById('fv' + cc);
   if (valEl) valEl.textContent = val;
@@ -1069,13 +1122,11 @@ function buildExpAssign() {
       this.classList.toggle('on', st.on);
       row.classList.toggle('assigned', st.on);
       row.querySelector('.exp-fader-name').style.color = st.on ? 'var(--orange)' : '';
-      // On the pedal, move the fader to max to assign; we send a fader-max CC to signal assignment
-      if (st.on) {
-        sendCC(f.cc, 127); // move to max = assign
-        toast(`Assigned Exp → ${f.name} (Heel:${st.heel} Toe:${st.toe})`);
-      } else {
-        toast(`Unassigned Exp from ${f.name}`);
-      }
+      // Planning note only — Exp/CV assignment is set physically on the pedal,
+      // there is no MIDI command to assign it, so we do not send any CC here.
+      toast(st.on
+        ? `Noted: Exp → ${f.name} (Heel:${st.heel} Toe:${st.toe}) — set this on the pedal`
+        : `Cleared Exp note for ${f.name}`);
     });
 
     // Heel/toe inputs
@@ -1224,7 +1275,8 @@ function deleteAppPreset(idx) {
 }
 
 function savePresetStorage() {
-  localStorage.setItem('bt2_presets', JSON.stringify(appPresets));
+  try { localStorage.setItem('bt2_presets', JSON.stringify(appPresets)); }
+  catch (e) { toast('Could not save presets — browser storage is blocked', true); }
 }
 
 function renderPresets() {
@@ -1303,6 +1355,47 @@ function toast(msg, err=false) {
 // INIT
 // ═══════════════════════════════════════════════════════════════
 
+// ── Keyboard accessibility (delegated; survives rebuilds) ──
+function a11yEnhance() {
+  document.querySelectorAll('.fader-track,.seg-btn,.toggle,.exp-toggle,.tab').forEach(el => {
+    if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+    if (el.classList.contains('fader-track')) {
+      el.setAttribute('role', 'slider');
+      el.setAttribute('aria-label', 'Fader CC' + (el.dataset.cc || ''));
+      el.setAttribute('aria-valuemin', '0');
+      el.setAttribute('aria-valuemax', '127');
+      el.setAttribute('aria-valuenow', S.faders[el.dataset.cc] ?? 64);
+    } else if (el.classList.contains('tab')) {
+      el.setAttribute('role', 'tab');
+    } else if (!el.hasAttribute('role')) {
+      el.setAttribute('role', 'button');
+    }
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  const el = e.target;
+  if (!el || !el.classList) return;
+  if (el.matches('.seg-btn,.toggle,.exp-toggle,.tab')) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+    return;
+  }
+  if (el.matches('.fader-track')) {
+    const cc = parseInt(el.dataset.cc);
+    const cur = S.faders[cc] ?? 64;
+    let d = 0;
+    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') d = 1;
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') d = -1;
+    else if (e.key === 'PageUp') d = 10;
+    else if (e.key === 'PageDown') d = -10;
+    else if (e.key === 'Home') { e.preventDefault(); setFader(cc, 0, true); return; }
+    else if (e.key === 'End') { e.preventDefault(); setFader(cc, 127, true); return; }
+    else return;
+    e.preventDefault();
+    setFader(cc, Math.max(0, Math.min(127, cur + d)), true);
+  }
+});
+
 buildFaders();
 buildButtons();
 buildOptions();
@@ -1311,6 +1404,11 @@ buildSubdiv();
 buildClockToggles();
 buildExpAssign();
 renderPresets();
+
+a11yEnhance();
+new MutationObserver(() => a11yEnhance())
+  .observe(document.getElementById('main'), { childList: true, subtree: true });
+
 initMIDI();
 </script>
 </body>
