@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Time — MIDI Editor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --bg-desk: #18191c;
+  --faceplate-top: #3c3e42;
+  --faceplate-bot: #2a2b2f;
+  --wood-grain: repeating-linear-gradient(90deg, #3d2210, #2c1608 3px, #3d2210 6px);
+  --wood-edge: #1a0c04;
+
+  --surface: rgba(0, 0, 0, 0.15);
+  --surface2: rgba(0, 0, 0, 0.25);
+  --surface3: rgba(0, 0, 0, 0.4);
+  --surface4: rgba(255, 255, 255, 0.05);
+  --border: rgba(0, 0, 0, 0.4);
+  --border2: rgba(255, 255, 255, 0.1);
+
+  --text: #e0e0e0;
+  --text-dim: #9aa0a6;
+  --text-dimmer: #5f6368;
+
+  --cyan: #3dd6c8;
+  --pink: #f06090;
+  --purple: #9b80f0;
+  --orange: #f0a040;
+  --green: #40e0a0;
+  --red: #f06060;
+
+  --r: 6px;
+  --rs: 4px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { height: 100%; }
+
+body {
+  background: var(--bg-desk);
+  color: var(--text);
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.pedal-wrapper {
+  display: flex;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5);
+  border-radius: 12px;
+  background: var(--wood-grain);
+  padding: 0 20px;
+  border-left: 2px solid var(--wood-edge);
+  border-right: 2px solid var(--wood-edge);
+  max-height: 95vh;
+}
+
+.pedal-chassis {
+  background: linear-gradient(to bottom, var(--faceplate-top), var(--faceplate-bot));
+  width: 95vw;
+  max-width: 1500px;
+  border-left: 1px solid rgba(255,255,255,0.05);
+  border-right: 1px solid rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.05), inset 0 -2px 6px rgba(0,0,0,0.4);
+}
+
+/* ── HEADER ── */
+#header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: transparent;
+  border-bottom: 1px solid rgba(0,0,0,0.2);
+  flex-shrink: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.logo { font-family: 'Jost', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: 1px; text-transform: uppercase; }
+.logo-sub { font-family: 'Jost', sans-serif; font-size: 10px; color: var(--cyan); letter-spacing: 2px; text-transform: uppercase; font-weight: 500;}
+
+.hrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--surface3); box-shadow: inset 0 1px 3px rgba(0,0,0,0.8); flex-shrink: 0; position: relative; }
+.dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green), inset 0 1px 3px rgba(0,0,0,0.2); }
+.dot.err { background: var(--red); box-shadow: 0 0 8px var(--red), inset 0 1px 3px rgba(0,0,0,0.2); }
+.dot.act { animation: blink 0.1s; }
+@keyframes blink { 0%,100%{} 50%{background:var(--orange);box-shadow:0 0 8px var(--orange), inset 0 1px 3px rgba(0,0,0,0.2);} }
+
+select, input[type=number], input[type=text] {
+  background: var(--surface3); border: 1px solid var(--border); color: var(--text);
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; border-radius: var(--rs);
+  outline: none; padding: 5px 8px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+}
+select:focus, input:focus { border-color: var(--cyan); }
+select { cursor: pointer; }
+
+.hstatus { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+
+/* ── TABS ── */
+#tabs {
+  display: flex; gap: 4px; padding: 12px 24px 0;
+  background: transparent; border-bottom: 2px solid rgba(0,0,0,0.2);
+  flex-shrink: 0;
+}
+.tab {
+  font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text-dim); padding: 8px 16px;
+  border-radius: var(--rs) var(--rs) 0 0; cursor: pointer; border: 1px solid transparent;
+  border-bottom: none; transition: all 0.15s; background: transparent;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: rgba(0,0,0,0.15); border-color: rgba(0,0,0,0.2); color: var(--cyan); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+
+/* ── MAIN LAYOUT ── */
+#body { display: flex; flex: 1; overflow: hidden; }
+
+#main { flex: 1; overflow-y: auto; padding: 24px; background: rgba(0,0,0,0.05); }
+#sidebar { width: 280px; flex-shrink: 0; border-left: 1px solid rgba(0,0,0,0.2); overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; background: rgba(0,0,0,0.1); }
+
+/* ── TAB PANELS ── */
+.panel { display: none; }
+.panel.active { display: block; animation: fadeIn 0.2s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── CARDS ── */
+.card { background: transparent; border: none; padding: 0; margin-bottom: 24px; }
+.card-title { font-family: 'Jost', sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+.card-title::after { content:''; flex:1; height:1px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(0,0,0,0.4); }
+
+/* ── VERTICAL FADERS ── */
+.faders-row { display: flex; gap: 12px; align-items: flex-end; }
+.fader-col { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+
+.fader-name {
+  font-family: 'Jost', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text); text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
+}
+.fader-cc { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dimmer); display: block; margin-top: 2px; font-weight: 400; }
+
+.fader-track {
+  position: relative; width: 32px; height: 140px; background: var(--surface3);
+  border-radius: 16px; cursor: pointer; box-shadow: inset 0 5px 10px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.1);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+}
+/* Hide the fill, use glowing thumb instead */
+.fader-fill { display: none !important; }
+
+.fader-thumb {
+  position: absolute; left: 50%; transform: translate(-50%, 50%);
+  width: 44px; height: 24px;
+  background: linear-gradient(to right, #4a4c52, #686a70 20%, #2a2b2f 80%, #1a1b1f);
+  border-radius: 4px; cursor: grab; pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+/* Glowing line on thumb */
+.fader-thumb::after {
+  content: ''; width: 100%; height: 3px; background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan), 0 0 12px var(--cyan);
+  border-radius: 2px;
+  opacity: var(--fader-opacity, 1);
+  transition: opacity 0.1s ease-out;
+}
+.fader-col[data-type="alt"] .fader-thumb::after { background: var(--purple); box-shadow: 0 0 6px var(--purple), 0 0 12px var(--purple); }
+.fader-col[data-type="feedback"] .fader-thumb::after { background: var(--pink); box-shadow: 0 0 6px var(--pink), 0 0 12px var(--pink); }
+.fader-col[data-type="wet"] .fader-thumb::after { background: var(--green); box-shadow: 0 0 6px var(--green), 0 0 12px var(--green); }
+.fader-col[data-type="pink"] .fader-thumb::after { background: var(--pink); box-shadow: 0 0 6px var(--pink), 0 0 12px var(--pink); }
+
+.fader-track:active .fader-thumb { cursor: grabbing; }
+
+.fader-val { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--cyan); min-width: 28px; text-align: center; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
+
+/* ── BUTTON CONTROLS ── */
+.btns-row { display: flex; gap: 12px; }
+.btn-col { flex: 1; display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.1); padding: 8px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.2); box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); }
+.btn-col-name {
+  font-family: 'Jost', sans-serif; font-weight: 600; font-size: 10px; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--text); text-align: center; margin-bottom: 4px;
+}
+
+.seg-btn {
+  position: relative; padding: 8px 6px; padding-left: 20px; border-radius: 4px; background: linear-gradient(to bottom, #3a3b40, #28292d);
+  color: var(--text-dim); font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;
+  cursor: pointer; text-align: center; transition: all 0.1s; user-select: none;
+  box-shadow: 0 3px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+  border: 1px solid #1a1a20;
+}
+.seg-btn:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 4px rgba(0,0,0,0.4); }
+.seg-btn:hover { color: var(--text); }
+
+/* LED Pip on active */
+.seg-btn::before {
+  content: ''; position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: 50%; background: #1a1a20; box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);
+  transition: all 0.1s;
+}
+
+.seg-btn.active { background: linear-gradient(to bottom, #28292d, #1a1a20); box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 4px rgba(0,0,0,0.5); transform: translateY(1px); color: var(--text); }
+
+/* State-specific active colors */
+.seg-btn.s0.active::before { background: var(--text-dim); box-shadow: 0 0 6px var(--text-dim), inset 0 1px 1px rgba(255,255,255,0.4); }
+.seg-btn.s1.active::before { background: var(--cyan); box-shadow: 0 0 8px var(--cyan), inset 0 1px 1px rgba(255,255,255,0.4); }
+.seg-btn.s2.active::before { background: var(--pink); box-shadow: 0 0 8px var(--pink), inset 0 1px 1px rgba(255,255,255,0.4); }
+.seg-btn.s3.active::before { background: var(--red); box-shadow: 0 0 8px var(--red), inset 0 1px 1px rgba(255,255,255,0.4); }
+/* Generic active */
+.seg-btn.active:not(.s0):not(.s1):not(.s2):not(.s3)::before { background: var(--cyan); box-shadow: 0 0 8px var(--cyan), inset 0 1px 1px rgba(255,255,255,0.4); }
+
+/* ── TOGGLE GRID ── */
+.toggles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: linear-gradient(to bottom, #3a3b40, #28292d);
+  border: 1px solid #1a1a20; border-radius: 6px; cursor: pointer; transition: all 0.1s; gap: 8px;
+  box-shadow: 0 3px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.toggle:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 4px rgba(0,0,0,0.4); }
+.toggle.active { background: linear-gradient(to bottom, #28292d, #1a1a20); box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 4px rgba(0,0,0,0.5); transform: translateY(1px); }
+.toggle-lbl { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-dim); }
+.toggle.active .toggle-lbl { color: var(--text); }
+.pip { width: 8px; height: 8px; border-radius: 50%; background: #1a1a20; box-shadow: inset 0 1px 2px rgba(0,0,0,0.8); flex-shrink: 0; transition: all 0.1s; }
+.toggle.active .pip { background: var(--purple); box-shadow: 0 0 8px var(--purple), inset 0 1px 1px rgba(255,255,255,0.4); }
+
+/* ── SUBDIVISIONS ── */
+.subdiv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.subdiv-btn {
+  padding: 14px 6px; border-radius: 6px; background: linear-gradient(to bottom, #3a3b40, #28292d);
+  border: 1px solid #1a1a20; color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace; font-size: 14px; cursor: pointer;
+  text-align: center; transition: all 0.1s;
+  box-shadow: 0 3px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.subdiv-btn:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 4px rgba(0,0,0,0.4); }
+.subdiv-btn:hover { color: var(--text); }
+.subdiv-btn.active { background: linear-gradient(to bottom, #28292d, #1a1a20); box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 4px rgba(0,0,0,0.5); transform: translateY(1px); color: var(--orange); border-color: rgba(240, 160, 64, 0.3); }
+
+/* ── EXP/CV ASSIGNMENT ── */
+.exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.exp-fader-row {
+  display: flex; align-items: center; justify-content: flex-start;
+  padding: 8px 12px; background: rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.3);
+  border-radius: 6px; gap: 12px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+.exp-fader-row.assigned { border-color: rgba(240, 160, 64, 0.4); background: rgba(240, 160, 64, 0.05); }
+.exp-fader-name { font-family: 'Jost', sans-serif; font-weight: 600; font-size: 11px; text-transform: uppercase; color: var(--text); width: 80px; letter-spacing: 0.5px; margin-right: 12px;}
+.exp-fader-row.assigned .exp-fader-name { color: var(--orange); }
+
+.exp-range { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.exp-range input[type=number] { width: 48px; padding: 4px 6px; font-size: 12px; }
+.exp-range-sep { color: var(--text-dimmer); font-size: 11px; }
+
+.exp-toggle {
+  width: 36px; height: 18px; background: #1a1a20; border: 1px solid rgba(0,0,0,0.6);
+  border-radius: 9px; cursor: pointer; position: relative; transition: all 0.2s;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+}
+.exp-toggle::after {
+  content: ''; position: absolute; top: 1px; left: 1px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: linear-gradient(to bottom, #5a5c60, #3c3e42); box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  transition: all 0.2s;
+}
+.exp-toggle.on { background: rgba(240, 160, 64, 0.2); border-color: rgba(240, 160, 64, 0.5); }
+.exp-toggle.on::after { transform: translateX(18px); background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+
+/* ── LOOP CONTROLS ── */
+.loop-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.loop-btn {
+  padding: 18px 12px; border-radius: 8px; background: linear-gradient(to bottom, #3a3b40, #28292d);
+  border: 1px solid #1a1a20; color: var(--text-dim);
+  font-family: 'Jost', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+  text-transform: uppercase; cursor: pointer; text-align: center; transition: all 0.1s;
+  line-height: 1.4; box-shadow: 0 3px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.loop-btn:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 4px rgba(0,0,0,0.4); }
+.loop-btn:hover { color: var(--text); }
+.loop-btn.rec:hover { color: var(--red); }
+.loop-btn.play:hover { color: var(--green); }
+.loop-btn.stop:hover { color: var(--orange); }
+.loop-btn.danger:hover { color: var(--red); }
+
+/* ── SIDEBAR ── */
+.scard { background: rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.2); border-radius: 8px; padding: 16px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); margin-bottom: 16px; }
+.scard-title { font-family: 'Jost', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.scard-title::after { content:''; flex:1; height:1px; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(0,0,0,0.4); }
+
+.btn { 
+  padding: 8px 12px; border-radius: 4px; border: 1px solid #1a1a20;
+  background: linear-gradient(to bottom, #3a3b40, #28292d); color: var(--text);
+  font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; cursor: pointer; transition: all 0.1s;
+  width: 100%; text-align: center; margin-bottom: 8px; display: block;
+  box-shadow: 0 3px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 2px 4px rgba(0,0,0,0.4); }
+.btn:hover { background: linear-gradient(to bottom, #4a4c52, #38393d); }
+.btn:last-child { margin-bottom: 0; }
+.btn.primary { color: var(--cyan); border-color: rgba(61, 214, 200, 0.3); }
+.btn.danger { color: var(--red); }
+.btn.warn { color: var(--orange); }
+.btn.green { color: var(--green); }
+
+.preset-input {
+  width: 100%; padding: 8px 10px; border-radius: 4px;
+  background: #1a1b1f; border: 1px solid #000;
+  color: var(--text); font-family: 'Share Tech Mono', monospace; font-size: 12px;
+  outline: none; margin-bottom: 10px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+}
+.preset-input:focus { border-color: var(--cyan); }
+.preset-input::placeholder { color: var(--text-dimmer); }
+
+.preset-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; padding-right: 4px; }
+
+.preset-item {
+  display: flex; align-items: center; padding: 8px 10px;
+  background: rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.3);
+  border-radius: 4px; cursor: pointer; transition: all 0.1s; gap: 8px;
+}
+.preset-item:hover { border-color: rgba(61, 214, 200, 0.4); background: rgba(0,0,0,0.3); }
+.preset-item-name { flex: 1; font-family: 'Share Tech Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preset-item-acts { display: flex; gap: 4px; flex-shrink: 0; }
+.ibt {
+  background: #2a2b2f; border: 1px solid rgba(0,0,0,0.4); color: var(--text-dim); cursor: pointer;
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; padding: 4px 6px;
+  border-radius: 3px; transition: all 0.1s;
+}
+.ibt:hover { color: var(--cyan); background: #3c3e42; }
+.ibt:active { transform: translateY(1px); }
+.ibt.del:hover { color: var(--red); }
+
+.midi-slot-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.midi-slot-row label { font-family: 'Jost', sans-serif; font-weight: 500; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+.midi-slot-row input[type=number] { width: 60px; font-size: 14px; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 20px; right: 20px;
+  padding: 12px 18px; background: rgba(20,20,24,0.95);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--cyan);
+  opacity: 0; transform: translateY(10px); transition: opacity 0.2s, transform 0.2s;
+  z-index: 999; pointer-events: none; box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+#toast.err { color: var(--red); border-color: rgba(240,96,96,0.3); }
+
+/* ── MISC ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+.row { display: flex; gap: 10px; }
+.row .btn { flex: 1; margin-bottom: 0; }
+
+.no-data { font-family: 'Jost', sans-serif; font-size: 11px; color: var(--text-dimmer); padding: 16px; border: 1px dashed rgba(255,255,255,0.1); border-radius: 6px; text-align: center; line-height: 1.6; }
+
+.info-box { background: rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.3); border-radius: 6px; padding: 10px 14px; font-family: 'Jost', sans-serif; font-size: 11px; color: var(--text-dim); line-height: 1.6; margin-top: 12px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); }
+.info-box b { color: var(--text); font-weight: 600; }
+
+.inline-label { font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; display: block; }
+
+hr.sep { border: none; border-top: 1px solid rgba(0,0,0,0.4); border-bottom: 1px solid rgba(255,255,255,0.05); margin: 16px 0; }
+
+.badge {
+  display: inline-block; padding: 2px 6px; border-radius: 3px;
+  font-family: 'Jost', sans-serif; font-weight: 600; font-size: 9px; letter-spacing: 0.5px;
+  background: rgba(0,0,0,0.4); color: var(--text-dim); border: 1px solid rgba(0,0,0,0.6);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+}
+</style>
+</head>
+<body>
+
+<!-- WRAPPERS -->
+<div class="pedal-wrapper">
+<div class="pedal-chassis">
+
+<!-- HEADER -->
+<div id="header">
+  <div>
+    <div class="logo">BIG TIME</div>
+    <div class="logo-sub">MIDI Editor &nbsp;·&nbsp; Chase Bliss × EAE</div>
+  </div>
+  <div class="hrow">
+    <div class="dot" id="dot"></div>
+    <span class="hstatus" id="hstatus">No MIDI</span>
+    <select id="selOut" style="min-width:200px"><option value="">— Select MIDI Output —</option></select>
+    <span class="hstatus">CH</span>
+    <select id="selCh" style="width:52px">
+      <option>1</option><option selected>2</option><option>3</option><option>4</option>
+      <option>5</option><option>6</option><option>7</option><option>8</option>
+      <option>9</option><option>10</option><option>11</option><option>12</option>
+      <option>13</option><option>14</option><option>15</option><option>16</option>
+    </select>
+  </div>
+</div>
+
+<!-- TABS -->
+<div id="tabs">
+  <div class="tab active" data-tab="controls">Controls</div>
+  <div class="tab" data-tab="loop">Performance</div>
+  <div class="tab" data-tab="options">System &amp; MIDI</div>
+  <div class="tab" data-tab="exp">Exp / CV</div>
+</div>
+
+<!-- BODY -->
+<div id="body">
+<div id="main">
+
+  <!-- ── TAB: CONTROLS ── -->
+  <div class="panel active" id="tab-controls">
+    <div style="display: flex; gap: 32px;">
+      
+      <div style="flex: 1; padding-right: 32px; border-right: 1px solid rgba(255,255,255,0.05);">
+        <div class="card">
+          <div class="card-title">Main Faders</div>
+          <div class="faders-row" id="mainFaders"></div>
+        </div>
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-title">Buttons</div>
+          <div class="btns-row" id="btnControls"></div>
+        </div>
+      </div>
+
+      <div style="flex: 1;">
+        <div class="card">
+          <div class="card-title">Alt Faders <span class="badge">Hold SHIFT on pedal</span></div>
+          <div class="faders-row" id="altFaders"></div>
+        </div>
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-title">Alt Buttons <span class="badge">Hold SHIFT on pedal</span></div>
+          <div class="btns-row" id="altBtnControls"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+    <!-- ── TAB: SYSTEM & MIDI ── -->
+  <div class="panel" id="tab-options">
+    <div style="display: flex; gap: 32px;">
+      <div style="flex: 1; padding-right: 32px; border-right: 1px solid rgba(255,255,255,0.05);">
+        <div class="card">
+          <div class="card-title">Options Menu</div>
+          <div class="toggles-grid" id="optToggles" style="grid-template-columns: repeat(2, 1fr);"></div>
+          <div class="info-box">Access on pedal: tap both footswitches simultaneously. These settings are stored with your presets.</div>
+        </div>
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-title">MIDI Settings</div>
+          <div class="toggles-grid" id="midiSettings"></div>
+          <div class="info-box">
+            <b>Global Notes (CC 112):</b> OFF = MIDI channel only. Channel = respond to channel. Global = respond on any channel.
+          </div>
+        </div>
+      </div>
+
+      <div style="flex: 1;">
+        <div class="card">
+          <div class="card-title">MIDI Clock <span class="badge">CC 110</span></div>
+          <div class="toggles-grid" id="clockToggles" style="grid-template-columns: 1fr;"></div>
+          <div class="info-box" style="margin-top: 12px;">
+            <b>No Clock:</b> MIDI OUT acts as THRU (default). <b>Clock In:</b> Big Time syncs to incoming MIDI clock. <b>Clock Out:</b> Big Time emits its own clock (60–240 bpm) via MIDI OUT — auto-subdivides if TIME/MODE push outside range. <i>Not available in MOD mode.</i>
+          </div>
+        </div>
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-title">EOM — Expression Over MIDI <span class="badge">CC 100</span></div>
+          <div class="info-box">EOM allows an expression pedal connected to a MIDI controller to control Big Time's faders over MIDI. Configure the expression assignment in the Exp/CV tab first, then send CC 100 with value 0–127 to control the assigned fader(s).</div>
+          <div style="margin-top:8px;">
+            <span class="inline-label">EOM Value (0–127)</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="range" id="eomSlider" min="0" max="127" value="64" style="flex:1">
+              <span id="eomVal" style="font-family:'Share Tech Mono',monospace;font-size:11px;min-width:28px;">64</span>
+              <button class="btn primary" style="width:auto;padding:6px 10px;" onclick="sendEOM()">Send</button>
+              <button class="btn warn" style="width:auto;padding:6px 10px;" onclick="sendCC(101,0);toast('EOM disengaged (CC101)')" title="CC 101 — Disengage EOM assignment">Disengage</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: PERFORMANCE ── -->
+  <div class="panel" id="tab-loop">
+    <div style="display: flex; gap: 32px;">
+      
+      <div style="flex: 1; padding-right: 32px; border-right: 1px solid rgba(255,255,255,0.05);">
+        <div class="card">
+          <div class="card-title">Loop Mode Footswitch Controls</div>
+          <span class="inline-label">Playback &amp; Recording</span>
+          <div class="loop-grid" id="loopBtns" style="gap: 16px;"></div>
+          <div class="info-box">Loop mode activates when MODE = Loop. Delay mode tap/hold functions are different — see Controls tab. Big Time carries over audio from Long mode when entering Loop mode.</div>
+        </div>
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-title">Play/Dub Mode</div>
+          <div class="btns-row" id="playDubBtns" style="max-width:200px"></div>
+          <div class="info-box">Decides what Big Time does after recording the initial loop: go into Playback, or go straight to Overdub.</div>
+        </div>
+      </div>
+
+      <div style="flex: 1;">
+        <div class="card">
+          <div class="card-title">Tap Tempo Subdivision <span class="badge">CC 54</span></div>
+          <div class="subdiv-grid" id="subdivGrid"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── TAB: EXP/CV ── -->
+  <div class="panel" id="tab-exp">
+    <div class="card">
+      <div class="card-title">Expression / CV Assignment</div>
+      <div class="info-box" style="margin-bottom:10px;">
+        <b>How it works on the pedal:</b> Hold SHIFT, then move any fader to max to assign Exp/CV to it. Right footswitch = set "toe" (max) position. Left footswitch = set "heel" (min) position.<br><br>
+        <b>This editor</b> lets you define the toe/heel range and toggle assignment for each fader, then sends the appropriate CC values to configure it. CV range: 0–5V. Higher voltage may damage the pedal.
+      </div>
+      <div id="expAssign"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+
+  <div class="scard">
+    <div class="scard-title">Sync to Pedal</div>
+    <button class="btn primary" onclick="sendAll()">▶ Send All Parameters</button>
+    <div class="row">
+      <button class="btn" onclick="randomize()">⟳ Randomize</button>
+      <button class="btn danger" onclick="resetToDefaults()">↺ Reset</button>
+    </div>
+    <div class="info-box" style="margin-top:6px;">Big Time doesn't send CC out, so use Send All after loading a preset or making changes on the hardware.</div>
+  </div>
+
+    <div class="scard">
+    <div class="scard-title">Presets</div>
+    
+    <div class="midi-slot-row" style="margin-bottom: 12px;">
+      <label style="flex:1">Hardware Slot (0–126)</label>
+      <input type="number" id="pedalSlot" min="0" max="126" value="0">
+    </div>
+    
+    <input type="text" class="preset-input" id="presetName" placeholder="Preset name…">
+    
+    <div class="row" style="margin-bottom:8px;">
+      <button class="btn" onclick="recallPreset()">Recall</button>
+      <button class="btn primary" onclick="saveToSlot()">Save to Slot</button>
+    </div>
+    
+    <div class="row" style="margin-bottom:12px;">
+      <button class="btn primary" onclick="saveAppPreset()">+ Save Local State</button>
+    </div>
+    
+    <hr class="sep">
+    
+    <div class="preset-list" id="presetList" style="margin-top:12px;">
+      <div class="no-data">No saved presets.<br>Save a state above.</div>
+    </div>
+    
+    <div class="row" style="margin-top:8px;">
+      <button class="btn" onclick="document.getElementById('importFile').click()">Import JSON</button>
+      <button class="btn" onclick="exportPresets()">Export</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importPresets(event)">
+  </div>
+
+  <div class="scard">
+    <div class="scard-title">Tap Tempo</div>
+    <button class="btn green" onclick="sendCC(103,127)" style="margin-bottom:4px;">Tap</button>
+    <button class="btn" onclick="sendCC(102,0)">Bypass Off</button>
+    <button class="btn" onclick="sendCC(102,127)">Bypass On</button>
+  </div>
+
+</div>
+</div><!-- /body -->
+
+</div><!-- /pedal-chassis -->
+</div><!-- /pedal-wrapper -->
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// MIDI MAP — full Big Time spec
+// ═══════════════════════════════════════════════════════════════
+
+const MAIN_FADERS = [
+  { name:'Color',    cc:14, type:'pink' },
+  { name:'Time',     cc:15, type:'default' },
+  { name:'Cluster',  cc:16, type:'default' },
+  { name:'Tilt EQ',  cc:17, type:'default' },
+  { name:'Feedback', cc:18, type:'feedback' },
+  { name:'Wet',      cc:19, type:'wet' },
+];
+
+const ALT_FADERS = [
+  { name:'Texture',  cc:32, type:'alt' },
+  { name:'Rate',     cc:33, type:'alt' },
+  { name:'Depth',    cc:34, type:'alt' },
+  { name:'Crossover',cc:35, type:'alt' },
+  { name:'Diffuse',  cc:36, type:'alt' },
+  { name:'Dry',      cc:37, type:'alt' },
+];
+
+const MAIN_BUTTONS = [
+  { name:'Scale',   cc:22, opts:['Off','Chromatic','Oct+4+5','Octave'] },
+  { name:'Motion',  cc:23, opts:['Off','Sine','Square','Env'] },
+  { name:'Mode',    cc:24, opts:['Mod','Short','Long','Loop'] },
+  { name:'Voicing', cc:25, opts:['HiFi','Focus','Warm','Analog'] },
+  { name:'State',   cc:26, opts:['Digital','Compressed','Saturated','#!&%'], stateColors:true },
+];
+
+const ALT_BUTTONS = [
+  { name:'Spread',      cc:38, opts:['Off','Blue (widen)','Red (ping-pong)'] },
+  { name:'0.5x',        cc:39, opts:['Normal','0.5x (12-bit)'] },
+  { name:'Diffuse Type',cc:40, opts:['Normal','Double'] },
+  { name:'+12 dB',      cc:41, opts:['Normal','+12 dB'] },
+];
+
+const OPTIONS_TOGGLES = [
+  { name:'Trails',       cc:45 },
+  { name:'Dry Kill',     cc:46 },
+  { name:'Dry Clean',    cc:47 },
+  { name:'Scale Ignore', cc:43 },
+  { name:'Step Mode',    cc:44 },
+  { name:'Bal. I/O',     cc:48 },
+];
+
+const LOOP_BUTTONS = [
+  { name:'Rec / Play / Dub', cc:103, cls:'rec',  tip:'Tap left FS in loop mode' },
+  { name:'Play',             cc:105, cls:'play',  tip:'Jump to playback' },
+  { name:'Record',           cc:104, cls:'rec',   tip:'Start recording' },
+  { name:'Play / Stop',      cc:102, cls:'play',  tip:'Tap right FS in loop mode' },
+  { name:'Stop',             cc:107, cls:'stop',  tip:'Stop & reset loop' },
+  { name:'Delete Loop',      cc:106, cls:'danger',tip:'Hold right FS — erase loop' },
+];
+
+const PLAY_DUB = [
+  { name:'→ Playback', cc:42, val:0 },
+  { name:'→ Overdub',  cc:42, val:1 },
+];
+
+const SUBDIV = [
+  {l:'1/16', v:0},{l:'1/8T', v:1},{l:'1/16.', v:2},{l:'1/8', v:3},
+  {l:'1/4T', v:4},{l:'1/8.', v:5},{l:'1/4',  v:6},{l:'1/2T', v:7},
+  {l:'1/4.', v:8},{l:'1/2',  v:9},{l:'1/1T', v:10},{l:'1/2.', v:11},
+];
+
+// CC 110 is now a 3-state: 0=No Clock, 1=Clock In, 2+=Clock Out
+const CLOCK_STATES = [
+  { v:0, l:'No Clock', tip:'MIDI OUT acts as THRU (default)' },
+  { v:1, l:'Clock In',  tip:'Receive incoming MIDI clock' },
+  { v:2, l:'Clock Out', tip:'Emit Big Time\'s own clock (60–240 bpm)' },
+];
+
+const MIDI_SETTINGS = [
+  { name:'MIDI Notes\n(Global)', cc:112, offLabel:'Off', onLabel:'Global', onVal:2, threeState:true,
+    states:[{v:0,l:'Off'},{v:1,l:'Channel'},{v:2,l:'Global'}] },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════════════
+
+const S = {
+  faders: {},
+  buttons: {},
+  options: {},
+  subdiv: 6,
+  clockMode: 0,   // 0=No Clock, 1=Clock In, 2=Clock Out
+  globalNotes: 0,
+  playDub: 0,
+  exp: {}, // cc -> { on:bool, heel:0, toe:127 }
+};
+
+// Init fader state
+[...MAIN_FADERS,...ALT_FADERS].forEach(f => S.faders[f.cc] = 64);
+S.faders[14] = 64; // Color default mid
+
+[...MAIN_BUTTONS,...ALT_BUTTONS].forEach(b => S.buttons[b.cc] = 0);
+OPTIONS_TOGGLES.forEach(o => S.options[o.cc] = 0);
+
+// Exp state init for all faders
+[...MAIN_FADERS,...ALT_FADERS].forEach(f => {
+  S.exp[f.cc] = { on: false, heel: 0, toe: 127 };
+});
+
+let appPresets = JSON.parse(localStorage.getItem('bt2_presets') || '[]');
+
+// ═══════════════════════════════════════════════════════════════
+// MIDI
+// ═══════════════════════════════════════════════════════════════
+
+let midiAccess = null, midiOut = null;
+let actTimer = null;
+
+async function initMIDI() {
+  if (!navigator.requestMIDIAccess) {
+    setStatus('err', 'WebMIDI not supported — use Chrome or Edge');
+    return;
+  }
+  try {
+    midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+    midiAccess.onstatechange = refreshOutputs;
+    refreshOutputs();
+    setStatus('ok', 'MIDI ready');
+    toast('MIDI connected');
+  } catch(e) {
+    setStatus('err', 'MIDI access denied');
+    toast('MIDI access denied', true);
+  }
+}
+
+function refreshOutputs() {
+  const sel = document.getElementById('selOut');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Select MIDI Output —</option>';
+  midiAccess.outputs.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.id; opt.textContent = o.name; sel.appendChild(opt);
+  });
+  if (prev) { sel.value = prev; }
+  updateOut();
+}
+
+function updateOut() {
+  const id = document.getElementById('selOut').value;
+  midiOut = id ? midiAccess?.outputs.get(id) : null;
+}
+
+document.getElementById('selOut').addEventListener('change', updateOut);
+
+function ch() { return parseInt(document.getElementById('selCh').value) - 1; }
+
+function sendCC(cc, val) {
+  val = Math.max(0, Math.min(127, Math.round(val)));
+  if (midiOut) { midiOut.send([0xB0 | ch(), cc, val]); flash(); }
+}
+
+function sendPC(prog) {
+  prog = Math.max(0, Math.min(126, Math.round(prog)));
+  if (midiOut) { midiOut.send([0xC0 | ch(), prog]); flash(); }
+}
+
+function flash() {
+  const dot = document.getElementById('dot');
+  dot.classList.add('act');
+  clearTimeout(actTimer);
+  actTimer = setTimeout(() => dot.classList.remove('act'), 100);
+}
+
+function setStatus(type, msg) {
+  const dot = document.getElementById('dot');
+  dot.className = 'dot ' + type;
+  document.getElementById('hstatus').textContent = msg;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FADER UI — custom drag
+// ═══════════════════════════════════════════════════════════════
+
+function buildFaderCol(f, container) {
+  const col = document.createElement('div');
+  col.className = 'fader-col';
+  col.dataset.type = f.type || 'default';
+  col.dataset.cc = f.cc;
+
+  const val = S.faders[f.cc] ?? 64;
+  const pct = val / 127;
+
+  col.innerHTML = `
+    <div class="fader-name">${f.name}<br><span class="fader-cc">CC${f.cc}</span></div>
+    <div class="fader-track" data-cc="${f.cc}">
+      <div class="fader-fill" style="height:${pct*100}%"></div>
+      <div class="fader-thumb" style="bottom:${pct*100}%;transform:translate(-50%,50%); --fader-opacity:${0.1 + 0.9 * pct}"></div>
+    </div>
+    <div class="fader-val" id="fv${f.cc}">${val}</div>
+  `;
+  container.appendChild(col);
+
+  // Custom drag logic
+  const track = col.querySelector('.fader-track');
+  track.addEventListener('mousedown', startDrag);
+  track.addEventListener('touchstart', startDrag, { passive: false });
+
+  function startDrag(e) {
+    e.preventDefault();
+    const onMove = (ev) => {
+      const clientY = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      const rect = track.getBoundingClientRect();
+      let pct = 1 - Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+      const newVal = Math.round(pct * 127);
+      setFader(f.cc, newVal, true);
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onUp);
+    onMove(e);
+  }
+
+  // Scroll wheel support
+  track.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1 : -1;
+    setFader(f.cc, Math.max(0, Math.min(127, (S.faders[f.cc] ?? 64) + delta)), true);
+  }, { passive: false });
+}
+
+function setFader(cc, val, send) {
+  val = Math.max(0, Math.min(127, val));
+  S.faders[cc] = val;
+  const pct = val / 127;
+  // Update fill and thumb
+  const track = document.querySelector(`.fader-track[data-cc="${cc}"]`);
+  if (track) {
+    track.querySelector('.fader-fill').style.height = (pct * 100) + '%';
+    const thumb = track.querySelector('.fader-thumb');
+    thumb.style.bottom = (pct * 100) + '%';
+    thumb.style.transform = 'translate(-50%, 50%)';
+    thumb.style.setProperty('--fader-opacity', 0.1 + 0.9 * pct);
+  }
+  const valEl = document.getElementById('fv' + cc);
+  if (valEl) valEl.textContent = val;
+  if (send) sendCC(cc, val);
+}
+
+function buildFaders() {
+  const mC = document.getElementById('mainFaders');
+  const aC = document.getElementById('altFaders');
+  mC.innerHTML = ''; aC.innerHTML = '';
+  MAIN_FADERS.forEach(f => buildFaderCol(f, mC));
+  ALT_FADERS.forEach(f => buildFaderCol(f, aC));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BUTTON CONTROLS
+// ═══════════════════════════════════════════════════════════════
+
+function buildButtonGroup(bDef, container) {
+  const col = document.createElement('div');
+  col.className = 'btn-col';
+  const ccStr = `<span class="fader-cc">CC${bDef.cc}</span>`;
+  col.innerHTML = `<div class="btn-col-name">${bDef.name}<br>${ccStr}</div>`;
+
+  bDef.opts.forEach((label, i) => {
+    const active = S.buttons[bDef.cc] === i;
+    const stateClass = bDef.stateColors ? `s${i}` : '';
+    const btn = document.createElement('div');
+    btn.className = `seg-btn ${stateClass} ${active ? 'active' : ''}`;
+    btn.textContent = label;
+    btn.dataset.cc = bDef.cc;
+    btn.dataset.val = i;
+    btn.addEventListener('click', () => {
+      S.buttons[bDef.cc] = i;
+      col.querySelectorAll('.seg-btn').forEach((b, j) => {
+        b.classList.toggle('active', j === i);
+      });
+      sendCC(bDef.cc, i);
+    });
+    col.appendChild(btn);
+  });
+  container.appendChild(col);
+}
+
+function buildButtons() {
+  const mC = document.getElementById('btnControls');
+  const aC = document.getElementById('altBtnControls');
+  mC.innerHTML = ''; aC.innerHTML = '';
+  MAIN_BUTTONS.forEach(b => buildButtonGroup(b, mC));
+  ALT_BUTTONS.forEach(b => buildButtonGroup(b, aC));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OPTIONS TOGGLES
+// ═══════════════════════════════════════════════════════════════
+
+function buildOptions() {
+  const grid = document.getElementById('optToggles');
+  grid.innerHTML = '';
+  OPTIONS_TOGGLES.forEach(o => {
+    const on = !!S.options[o.cc];
+    const el = document.createElement('div');
+    el.className = `toggle ${on ? 'active' : ''}`;
+    el.dataset.cc = o.cc;
+    el.innerHTML = `<span class="toggle-lbl">${o.name}</span><div class="pip"></div>`;
+    el.addEventListener('click', () => {
+      S.options[o.cc] = S.options[o.cc] ? 0 : 1;
+      el.classList.toggle('active', !!S.options[o.cc]);
+      sendCC(o.cc, S.options[o.cc] ? 127 : 0);
+    });
+    grid.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOOP CONTROLS
+// ═══════════════════════════════════════════════════════════════
+
+function buildLoop() {
+  const grid = document.getElementById('loopBtns');
+  grid.innerHTML = '';
+  LOOP_BUTTONS.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = `loop-btn ${b.cls}`;
+    btn.title = b.tip;
+    btn.innerHTML = b.name;
+    btn.addEventListener('click', () => { sendCC(b.cc, 127); toast(b.name); });
+    grid.appendChild(btn);
+  });
+
+  // Play/dub
+  const pdC = document.getElementById('playDubBtns');
+  pdC.innerHTML = '';
+  const col = document.createElement('div');
+  col.className = 'btn-col';
+  col.innerHTML = '<div class="btn-col-name">After Recording<br><span class="fader-cc">CC42</span></div>';
+  PLAY_DUB.forEach((pd, i) => {
+    const active = S.playDub === i;
+    const btn = document.createElement('div');
+    btn.className = `seg-btn ${active ? 'active' : ''}`;
+    btn.textContent = pd.name;
+    btn.addEventListener('click', () => {
+      S.playDub = i;
+      col.querySelectorAll('.seg-btn').forEach((b, j) => b.classList.toggle('active', j === i));
+      sendCC(pd.cc, pd.val);
+    });
+    col.appendChild(btn);
+  });
+  pdC.appendChild(col);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUBDIVISIONS
+// ═══════════════════════════════════════════════════════════════
+
+function buildSubdiv() {
+  const grid = document.getElementById('subdivGrid');
+  grid.innerHTML = '';
+  SUBDIV.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = `subdiv-btn ${S.subdiv === s.v ? 'active' : ''}`;
+    btn.textContent = s.l;
+    btn.addEventListener('click', () => {
+      S.subdiv = s.v;
+      sendCC(54, s.v);
+      buildSubdiv();
+      toast(`Subdivision: ${s.l}`);
+    });
+    grid.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CLOCK & MIDI SETTINGS
+// ═══════════════════════════════════════════════════════════════
+
+function buildClockToggles() {
+  const grid = document.getElementById('clockToggles');
+  grid.innerHTML = '';
+
+  // CC 110 — 3-state: No Clock / Clock In / Clock Out
+  const clockCol = document.createElement('div');
+  clockCol.className = 'btn-col';
+  clockCol.innerHTML = `<div class="btn-col-name">MIDI Clock<br><span class="fader-cc">CC110</span></div>`;
+  CLOCK_STATES.forEach(cs => {
+    const active = S.clockMode === cs.v;
+    const btn = document.createElement('div');
+    btn.className = `seg-btn ${active ? 'active' : ''}`;
+    btn.textContent = cs.l;
+    btn.title = cs.tip;
+    btn.addEventListener('click', () => {
+      S.clockMode = cs.v;
+      clockCol.querySelectorAll('.seg-btn').forEach((b, j) => b.classList.toggle('active', CLOCK_STATES[j].v === cs.v));
+      sendCC(110, cs.v);
+      toast(`Clock: ${cs.l}`);
+    });
+    clockCol.appendChild(btn);
+  });
+  grid.appendChild(clockCol);
+
+  // MIDI settings (global notes — 3 states)
+  const mGrid = document.getElementById('midiSettings');
+  mGrid.innerHTML = '';
+  const ms = MIDI_SETTINGS[0];
+  const col = document.createElement('div');
+  col.className = 'btn-col';
+  col.innerHTML = `<div class="btn-col-name">MIDI Notes Mode<br><span class="fader-cc">CC${ms.cc}</span></div>`;
+  ms.states.forEach(st => {
+    const active = S.globalNotes === st.v;
+    const btn = document.createElement('div');
+    btn.className = `seg-btn ${active ? 'active' : ''}`;
+    btn.textContent = st.l;
+    btn.addEventListener('click', () => {
+      S.globalNotes = st.v;
+      col.querySelectorAll('.seg-btn').forEach((b, j) => b.classList.toggle('active', ms.states[j].v === st.v));
+      sendCC(ms.cc, st.v);
+    });
+    col.appendChild(btn);
+  });
+  mGrid.appendChild(col);
+}
+
+// EOM slider
+document.getElementById('eomSlider').addEventListener('input', function() {
+  document.getElementById('eomVal').textContent = this.value;
+});
+function sendEOM() {
+  sendCC(100, parseInt(document.getElementById('eomSlider').value));
+  toast('EOM sent');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXP/CV ASSIGNMENT
+// ═══════════════════════════════════════════════════════════════
+
+function buildExpAssign() {
+  const container = document.getElementById('expAssign');
+  container.innerHTML = '';
+
+  const allFaders = [...MAIN_FADERS, ...ALT_FADERS];
+  allFaders.forEach(f => {
+    const st = S.exp[f.cc] || { on: false, heel: 0, toe: 127 };
+
+    const row = document.createElement('div');
+    row.className = `exp-fader-row ${st.on ? 'assigned' : ''}`;
+
+    row.innerHTML = `
+      <div class="exp-toggle ${st.on ? 'on' : ''}" data-cc="${f.cc}" title="Toggle assignment"></div>
+      <span class="exp-fader-name">${f.name} <span class="fader-cc">CC${f.cc}</span></span>
+      <div class="exp-range">
+        <span class="exp-range-sep" style="font-size:8px;color:var(--text-dimmer);">Heel</span>
+        <input type="number" min="0" max="127" value="${st.heel}" data-cc="${f.cc}" data-pos="heel"
+          style="width:42px;padding:3px 4px;font-size:10px;">
+        <span class="exp-range-sep">→</span>
+        <input type="number" min="0" max="127" value="${st.toe}" data-cc="${f.cc}" data-pos="toe"
+          style="width:42px;padding:3px 4px;font-size:10px;">
+        <span class="exp-range-sep" style="font-size:8px;color:var(--text-dimmer);">Toe</span>
+      </div>
+    `;
+
+    // Toggle assignment
+    row.querySelector('.exp-toggle').addEventListener('click', function() {
+      st.on = !st.on;
+      this.classList.toggle('on', st.on);
+      row.classList.toggle('assigned', st.on);
+      row.querySelector('.exp-fader-name').style.color = st.on ? 'var(--orange)' : '';
+      // On the pedal, move the fader to max to assign; we send a fader-max CC to signal assignment
+      if (st.on) {
+        sendCC(f.cc, 127); // move to max = assign
+        toast(`Assigned Exp → ${f.name} (Heel:${st.heel} Toe:${st.toe})`);
+      } else {
+        toast(`Unassigned Exp from ${f.name}`);
+      }
+    });
+
+    // Heel/toe inputs
+    row.querySelectorAll('input[type=number]').forEach(inp => {
+      inp.addEventListener('change', function() {
+        const pos = this.dataset.pos;
+        st[pos] = Math.max(0, Math.min(127, parseInt(this.value) || 0));
+        this.value = st[pos];
+        toast(`${f.name} ${pos}: ${st[pos]}`);
+      });
+    });
+
+    container.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEND ALL
+// ═══════════════════════════════════════════════════════════════
+
+function sendAll() {
+  if (!midiOut) { toast('No MIDI output selected', true); return; }
+  [...MAIN_FADERS, ...ALT_FADERS].forEach(f => sendCC(f.cc, S.faders[f.cc] ?? 64));
+  [...MAIN_BUTTONS, ...ALT_BUTTONS].forEach(b => sendCC(b.cc, S.buttons[b.cc] ?? 0));
+  OPTIONS_TOGGLES.forEach(o => sendCC(o.cc, S.options[o.cc] ? 127 : 0));
+  sendCC(54, S.subdiv);
+  sendCC(110, S.clockMode);
+  sendCC(112, S.globalNotes);
+  sendCC(42, S.playDub);
+  toast('All parameters sent to pedal');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RANDOMIZE / RESET
+// ═══════════════════════════════════════════════════════════════
+
+function randomize() {
+  [...MAIN_FADERS, ...ALT_FADERS].forEach(f => {
+    S.faders[f.cc] = Math.floor(Math.random() * 128);
+    setFader(f.cc, S.faders[f.cc], false);
+  });
+  [...MAIN_BUTTONS, ...ALT_BUTTONS].forEach(b => {
+    S.buttons[b.cc] = Math.floor(Math.random() * b.opts.length);
+  });
+  buildButtons();
+  if (midiOut) sendAll();
+  toast('Randomized!');
+}
+
+function resetToDefaults() {
+  [...MAIN_FADERS, ...ALT_FADERS].forEach(f => {
+    S.faders[f.cc] = 64;
+    setFader(f.cc, 64, false);
+  });
+  [...MAIN_BUTTONS, ...ALT_BUTTONS].forEach(b => { S.buttons[b.cc] = 0; });
+  OPTIONS_TOGGLES.forEach(o => { S.options[o.cc] = 0; });
+  S.subdiv = 6; S.clockMode = 0; S.globalNotes = 0; S.playDub = 0;
+  buildButtons();
+  buildOptions();
+  buildSubdiv();
+  buildClockToggles();
+  toast('Reset to defaults');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PEDAL PRESETS
+// ═══════════════════════════════════════════════════════════════
+
+function recallPreset() {
+  const slot = parseInt(document.getElementById('pedalSlot').value);
+  if (isNaN(slot) || slot < 0 || slot > 126) { toast('Slot must be 0–126', true); return; }
+  sendPC(slot);
+  toast(`Recalled pedal slot ${slot}`);
+}
+
+function saveToSlot() {
+  const slot = parseInt(document.getElementById('pedalSlot').value);
+  if (isNaN(slot) || slot < 0 || slot > 126) { toast('Slot must be 0–126', true); return; }
+  sendCC(27, slot);
+  toast(`Saved to pedal slot ${slot}`);
+}
+
+function saveToCurrent() {
+  sendCC(28, 0);  // any value triggers save to current slot
+  toast('Saved to current slot (CC28)');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// APP PRESETS
+// ═══════════════════════════════════════════════════════════════
+
+function captureState() {
+  return {
+    faders: { ...S.faders },
+    buttons: { ...S.buttons },
+    options: { ...S.options },
+    subdiv: S.subdiv,
+    clockMode: S.clockMode,
+    globalNotes: S.globalNotes,
+    playDub: S.playDub,
+    exp: JSON.parse(JSON.stringify(S.exp)),
+  };
+}
+
+function applyState(snap) {
+  if (snap.faders) { Object.assign(S.faders, snap.faders); [...MAIN_FADERS,...ALT_FADERS].forEach(f => setFader(f.cc, S.faders[f.cc] ?? 64, false)); }
+  if (snap.buttons) Object.assign(S.buttons, snap.buttons);
+  if (snap.options) Object.assign(S.options, snap.options);
+  if (snap.subdiv !== undefined) S.subdiv = snap.subdiv;
+  // Forward-compat: map old binary clockOut → new 3-state clockMode
+  if (snap.clockMode !== undefined) S.clockMode = snap.clockMode;
+  else if (snap.clockOut !== undefined) S.clockMode = snap.clockOut ? 2 : 0;
+  if (snap.globalNotes !== undefined) S.globalNotes = snap.globalNotes;
+  if (snap.playDub !== undefined) S.playDub = snap.playDub;
+  if (snap.exp) Object.assign(S.exp, snap.exp);
+  buildButtons();
+  buildOptions();
+  buildSubdiv();
+  buildClockToggles();
+  buildExpAssign();
+}
+
+function saveAppPreset() {
+  const name = document.getElementById('presetName').value.trim() || 'Untitled';
+  appPresets.push({ name, ts: Date.now(), state: captureState() });
+  savePresetStorage();
+  renderPresets();
+  document.getElementById('presetName').value = '';
+  toast(`Saved "${name}"`);
+}
+
+function loadAppPreset(idx, andSend) {
+  const p = appPresets[idx];
+  if (!p) return;
+  applyState(p.state);
+  toast(`Loaded "${p.name}"`);
+  if (andSend) setTimeout(sendAll, 50);
+}
+
+function deleteAppPreset(idx) {
+  const name = appPresets[idx]?.name;
+  appPresets.splice(idx, 1);
+  savePresetStorage();
+  renderPresets();
+  toast(`Deleted "${name}"`);
+}
+
+function savePresetStorage() {
+  localStorage.setItem('bt2_presets', JSON.stringify(appPresets));
+}
+
+function renderPresets() {
+  const list = document.getElementById('presetList');
+  if (!appPresets.length) {
+    list.innerHTML = '<div class="no-data">No saved presets.<br>Save a state above.</div>';
+    return;
+  }
+  list.innerHTML = appPresets.map((p, i) => `
+    <div class="preset-item">
+      <span class="preset-item-name">${p.name}</span>
+      <div class="preset-item-acts">
+        <button class="ibt" title="Load" onclick="loadAppPreset(${i},false)">▶</button>
+        <button class="ibt" title="Load + Send All" onclick="loadAppPreset(${i},true)">↑</button>
+        <button class="ibt del" title="Delete" onclick="deleteAppPreset(${i})">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function exportPresets() {
+  const blob = new Blob([JSON.stringify(appPresets, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bigtime-presets.json';
+  a.click();
+  toast('Presets exported');
+}
+
+function importPresets(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (Array.isArray(data)) {
+        appPresets = [...appPresets, ...data];
+        savePresetStorage();
+        renderPresets();
+        toast(`Imported ${data.length} preset(s)`);
+      }
+    } catch(err) { toast('Invalid JSON file', true); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════
+
+let toastT;
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.className = 'toast', 2800);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+
+buildFaders();
+buildButtons();
+buildOptions();
+buildLoop();
+buildSubdiv();
+buildClockToggles();
+buildExpAssign();
+renderPresets();
+initMIDI();
+</script>
+</body>
+</html>
