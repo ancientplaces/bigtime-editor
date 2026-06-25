@@ -289,6 +289,18 @@ select { cursor: pointer; }
 
 .hstatus { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
 
+.guide-link {
+  font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; text-decoration: none; color: var(--cyan);
+  padding: 6px 12px; border-radius: var(--rs);
+  background: linear-gradient(to bottom, var(--btn-bg-top), var(--btn-bg-bot));
+  border: 1px solid var(--btn-border); box-shadow: var(--btn-shadow);
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex-shrink: 0;
+  transition: all 0.15s;
+}
+.guide-link:hover { color: var(--text); }
+.guide-link:active { transform: translateY(1px); box-shadow: var(--btn-pressed-shadow); }
+
 /* ── THEME TOGGLE ── */
 .theme-toggle {
   width: 34px; height: 34px; border-radius: 50%;
@@ -644,6 +656,7 @@ hr.sep { border: none; border-top: var(--sep-top); border-bottom: var(--sep-bot)
     <div class="logo-sub">MIDI Editor &nbsp;·&nbsp; Chase Bliss × EAE</div>
   </div>
   <div class="hrow">
+    <a class="guide-link" href="https://github.com/ancientplaces/bigtime-editor/blob/main/USER-GUIDE.md" target="_blank" rel="noopener" title="Open the user guide in a new tab">📖 User Guide</a>
     <button class="theme-toggle" onclick="toggleTheme()" title="Switch theme">
       <span class="icon-sun">☀</span>
       <span class="icon-moon">☾</span>
