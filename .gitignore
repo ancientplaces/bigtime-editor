@@ -1,0 +1,14 @@
+# This is a PUBLIC repo. Anything committed here is published.
+# These patterns keep local machine noise off that surface.
+
+# OS noise
+.DS_Store
+.Spotlight-V100
+.Trashes
+._*
+
+# Editor noise
+*.swp
+*~
+.idea/
+.vscode/
