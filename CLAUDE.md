@@ -5,13 +5,13 @@
 **Visibility:** **PUBLIC** (verified 2026-08-04 via `gh repo view`). Pages
 `built`, served from `main` `/` at https://ancientplaces.github.io/bigtime-editor/
 (verified 2026-08-04 via `gh api repos/ancientplaces/bigtime-editor/pages`)
-**Local path:** `/Users/leehoward/Documents/Claude/Projects/Music-related software development/bigtime-editor` (verified 2026-08-04 via `pwd`)
+**Local path:** `/Users/leehoward/Projects/bigtime-editor` (verified 2026-10-05 via `pwd`)
 **Purpose:** The Big Time MIDI editor — a single self-contained `index.html`
 web app for the Chase Bliss Big Time delay, plus its user-facing docs and the
 locked MIDI spec PDF. No build step, no dependencies beyond a Google Fonts link.
 
 Global rules: `~/.claude/CLAUDE.md`. Doctrine:
-`github-residence-canonical-2026-07-26-r3.md` as amended by
+`github-residence-canonical-2026-10-05-r4.md` as amended by
 `cc-port-ruling-2026-08-04.md`, both in `ancientplaces/groundwork-store`.
 
 ## Contents rule — this repo is public
